@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kalkulator Profit TikTok Shop / Shopee</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        body { background-color: #f3f4f6; font-family: 'Inter', sans-serif; }
+        .input-group label { display: block; font-size: 0.7rem; font-weight: 700; color: #4b5563; text-transform: uppercase; margin-bottom: 0.25rem; letter-spacing: 0.025em; }
+        .input-field { width: 100%; padding: 0.6rem; border: 1px solid #e5e7eb; border-radius: 0.4rem; outline: none; transition: all 0.2s; font-size: 0.9rem; }
+        .input-field:focus { border-color: #ff0050; box-shadow: 0 0 0 2px rgba(255, 0, 80, 0.1); }
+        .card { background: white; border-radius: 1rem; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
+        .btn-add { background-color: #10b981; color: white; padding: 0.4rem 0.8rem; border-radius: 0.4rem; font-size: 0.75rem; font-weight: 600; transition: opacity 0.2s; cursor: pointer; }
+        .btn-remove { color: #ef4444; font-size: 1.2rem; cursor: pointer; }
+        .btn-export { background-color: #1f2937; color: white; padding: 0.6rem 1.2rem; border-radius: 0.5rem; font-size: 0.875rem; font-weight: 600; display: flex; align-items: center; gap: 0.5rem; cursor: pointer; }
+        .global-section { background: #1e293b; color: white; border-radius: 1rem; padding: 1.5rem; margin-bottom: 1.5rem; }
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #475569; border-radius: 10px; }
+        
+        #loginOverlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 100; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(8px); }
+        #mainContent { display: none; }
+        
+        #errorModal { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 200; display: none; align-items: center; justify-content: center; padding: 1rem; }
+        
+        .loader { border: 3px solid #f3f3f3; border-top: 3px solid #ff0050; border-radius: 50%; width: 20px; height: 20px; animation: spin 1s linear infinite; display: inline-block; vertical-align: middle; margin-right: 8px; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        .switch { position: relative; display: inline-block; width: 40px; height: 20px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 20px; }
+        .slider:before { position: absolute; content: ""; height: 14px; width: 14px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background-color: #ff0050; }
+        input:checked + .slider:before { transform: translateX(20px); }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+
+    <!-- ERROR MODAL -->
+    <div id="errorModal">
+        <div class="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl text-center transform scale-95 transition-transform duration-300">
+            <div class="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg width="32" height="32" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+            </div>
+            <h3 class="text-lg font-black text-gray-900 mb-2">Akses Ditolak</h3>
+            <p id="errorModalMessage" class="text-sm text-gray-500 mb-6">Email Anda tidak terdaftar dalam sistem kami.</p>
+            <button onclick="closeErrorModal()" class="w-full bg-gray-900 text-white font-bold py-3 rounded-xl hover:bg-black transition-colors">Saya Mengerti</button>
+        </div>
+    </div>
+
+    <!-- LOGIN OVERLAY -->
+    <div id="loginOverlay">
+        <div class="bg-white p-8 rounded-2xl shadow-2xl max-w-md w-full mx-4 border-t-4 border-[#ff0050]">
+            <div class="flex justify-center mb-6">
+                <div class="bg-black p-3 rounded-xl">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="white"><path d="M19.589 6.686a4.793 4.793 0 0 1-3.77-4.245V2h-3.445v13.647c0 2.522-2.044 4.566-4.566 4.566-2.521 0-4.565-2.044-4.565-4.566 0-2.521 2.044-4.565 4.565-4.565.27 0 .531.024.785.068v-3.51a7.957 7.957 0 0 0-.785-.039C3.65 7.606 0 11.256 0 15.757 0 20.258 3.65 23.908 8.143 23.908c4.493 0 8.143-3.65 8.143-8.151V8.582a8.217 8.217 0 0 0 3.303 1.272V6.686z"/></svg>
+                </div>
+            </div>
+            <h2 class="text-xl font-black text-center mb-2">Akses Terbatas</h2>
+            <p class="text-sm text-gray-500 text-center mb-6">Masukkan email Anda untuk verifikasi akses.</p>
+            
+            <div class="space-y-4">
+                <input type="email" id="userEmail" class="input-field border-2 text-center text-lg py-3" placeholder="email@contoh.com">
+                <button onclick="validateAccess()" id="loginBtn" class="w-full bg-[#ff0050] text-white font-bold py-3 rounded-xl hover:bg-[#d60044] transition-colors flex items-center justify-center">
+                    <span id="btnLoader" class="loader hidden"></span>
+                    <span id="btnText">Masuk Ke Kalkulator</span>
+                </button>
+                <div class="relative flex items-center py-2">
+                    <div class="flex-grow border-t border-gray-200"></div>
+                    <span class="flex-shrink mx-4 text-gray-400 text-[10px] font-bold uppercase tracking-widest">Atau</span>
+                    <div class="flex-grow border-t border-gray-200"></div>
+                </div>
+                <a href="https://wa.me/6283866997758?text=Halo%20Admin%2C%20saya%20ingin%20daftar%20akses%20Kalkulator%20Profit%20TikTok%20Shop." target="_blank" class="w-full bg-emerald-500 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2">Daftar Akses (Admin)</a>
+                <div id="loginError" class="text-[11px] text-red-500 text-center font-bold hidden bg-red-50 p-2 rounded-lg border border-red-100 mt-2"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div id="mainContent" class="max-w-7xl mx-auto">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+            <div class="flex items-center gap-2">
+                <div class="bg-black p-2 rounded">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="white"><path d="M19.589 6.686a4.793 4.793 0 0 1-3.77-4.245V2h-3.445v13.647c0 2.522-2.044 4.566-4.566 4.566-2.521 0-4.565-2.044-4.565-4.566 0-2.521 2.044-4.565 4.565-4.565.27 0 .531.024.785.068v-3.51a7.957 7.957 0 0 0-.785-.039C3.65 7.606 0 11.256 0 15.757 0 20.258 3.65 23.908 8.143 23.908c4.493 0 8.143-3.65 8.143-8.151V8.582a8.217 8.217 0 0 0 3.303 1.272V6.686z"/></svg>
+                </div>
+                <div>
+                    <h1 class="text-2xl font-black text-gray-900 leading-none">Kalkulator Profit TikTok Shop / Shopee</h1>
+                    <p class="text-xs text-gray-500 mt-1 uppercase tracking-widest font-bold">Credit by Windi Akbar</p>
+                </div>
+            </div>
+            <div class="flex gap-2">
+                <button onclick="logout()" class="p-3 bg-white border border-gray-200 rounded-lg text-gray-400 hover:text-red-500">
+                    <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                </button>
+                <button onclick="exportToExcel()" class="btn-export">Ekspor Data Lengkap (Excel)</button>
+            </div>
+        </div>
+
+        <!-- Global Settings -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            <div class="global-section shadow-lg border-b-4 border-blue-500">
+                <div class="flex justify-between items-center mb-4 border-b border-slate-700 pb-2">
+                    <h2 class="font-black text-sm uppercase tracking-wider text-blue-400">Komisi Platform & Biaya Per Pesanan</h2>
+                    <span class="bg-blue-600 px-2 py-1 rounded text-[10px] font-bold">TOTAL: <span id="globalTotalPersen">0</span>%</span>
+                </div>
+                <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    <div class="input-group"><label class="!text-slate-400">Komisi Admin (%)</label><input type="number" step="0.1" id="g_plat" class="input-field bg-slate-800 border-slate-700 text-white" value="0" oninput="calculateAll()"></div>
+                    <div class="input-group"><label class="!text-slate-400">Komisi Dinamis (%)</label><input type="number" step="0.1" id="g_dyn" class="input-field bg-slate-800 border-slate-700 text-white" value="0" oninput="calculateAll()"></div>
+                    <div class="input-group"><label class="!text-slate-400">Biaya Layanan (%)</label><input type="number" step="0.1" id="g_serv" class="input-field bg-slate-800 border-slate-700 text-white" value="0" oninput="calculateAll()"></div>
+                    <div class="input-group"><label class="!text-slate-400">Komisi Affiliate (%)</label><input type="number" step="0.1" id="g_aff" class="input-field bg-slate-800 border-slate-700 text-white" value="0" oninput="calculateAll()"></div>
+                    <div class="input-group"><label class="!text-slate-400">Biaya Per Pesanan (Rp)</label><input type="number" id="g_pack" class="input-field bg-slate-800 border-slate-700 text-white font-bold text-blue-400" value="0" oninput="syncPackingToProducts(); calculateAll()"></div>
+                    <div class="input-group"><label class="!text-slate-400">Lainnya (%)</label><input type="number" step="0.1" id="g_other" class="input-field bg-slate-800 border-slate-700 text-white" value="0" oninput="calculateAll()"></div>
+                </div>
+            </div>
+
+            <div class="global-section shadow-lg border-b-4 border-red-500">
+                <div class="flex justify-between items-center mb-4 border-b border-slate-700 pb-2">
+                    <h2 class="font-black text-sm uppercase tracking-wider text-red-400">Marketing & Iklan</h2>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="input-group"><label class="!text-slate-400">Biaya Iklan / Pcs (Rp)</label><input type="number" id="g_ad_spend" class="input-field bg-slate-800 border-slate-700 text-white" value="0" oninput="calculateAll()"></div>
+                    <div class="input-group"><label class="!text-slate-400">Target ROI / ROAS (x)</label><input type="number" step="0.1" id="g_roi" class="input-field bg-slate-800 border-slate-700 text-white" value="0" placeholder="0" oninput="calculateAll()"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div class="lg:col-span-2 space-y-6">
+                
+                <!-- BATCH EDITOR PANEL -->
+                <div class="card p-5 border-t-4 border-indigo-500 bg-indigo-50">
+                    <h2 class="text-xs font-black text-indigo-900 uppercase mb-4 flex items-center gap-2">
+                        <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.121l8.114-8.114z"/></svg>
+                        Pengaturan Masal (Batch)
+                    </h2>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                        <div class="input-group">
+                            <label>Mode Input Masal</label>
+                            <div class="flex items-center gap-2 bg-white p-2 rounded border border-indigo-200">
+                                <span class="text-[9px] font-bold text-gray-400">PROFIT</span>
+                                <label class="switch">
+                                    <input type="checkbox" id="batchModeToggle" onchange="applyBatchMode(this.checked)">
+                                    <span class="slider"></span>
+                                </label>
+                                <span class="text-[9px] font-bold text-gray-400">HARGA JUAL</span>
+                            </div>
+                        </div>
+                        <div class="input-group">
+                            <label>Set Target Profit (Semua)</label>
+                            <div class="flex gap-1">
+                                <input type="number" id="batchProfit" class="input-field" placeholder="Rp">
+                                <button onclick="applyBatchValue('profit', 'batchProfit')" class="bg-indigo-600 text-white px-3 rounded text-xs font-bold">Set</button>
+                                <button onclick="clearBatchValue('profit')" class="bg-red-100 text-red-600 px-3 rounded text-lg font-bold">&times;</button>
+                            </div>
+                        </div>
+                        <div class="input-group">
+                            <label>Set Voucher (Semua)</label>
+                            <div class="flex gap-1">
+                                <input type="number" id="batchVouch" class="input-field" placeholder="Rp">
+                                <button onclick="applyBatchValue('vouch', 'batchVouch')" class="bg-indigo-600 text-white px-3 rounded text-xs font-bold">Set</button>
+                                <button onclick="clearBatchValue('vouch')" class="bg-red-100 text-red-600 px-3 rounded text-lg font-bold">&times;</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex justify-between items-center bg-white p-4 rounded-xl shadow-sm border-t-4 border-black">
+                    <h2 class="font-bold text-gray-800">Daftar Produk (<span id="productCount">0</span>)</h2>
+                    <div class="flex gap-2">
+                        <input type="file" id="excelUpload" accept=".xlsx, .xls, .csv" class="hidden" onchange="handleFileUpload(event)">
+                        <button onclick="document.getElementById('excelUpload').click()" class="bg-indigo-600 text-white px-3 py-2 rounded-lg font-bold text-xs shadow-sm hover:bg-indigo-700 transition">📥 Upload Excel</button>
+                        <button onclick="addProduct()" class="bg-black text-white px-3 py-2 rounded-lg font-bold text-xs shadow-sm">+ Tambah Produk</button>
+                    </div>
+                </div>
+                <div id="productsContainer"></div>
+                
+                <div class="card p-6 border-l-4 border-orange-500">
+                    <div class="flex justify-between items-center mb-6"><h2 class="text-lg font-bold text-gray-800">Biaya Operasional Bulanan</h2><button onclick="addExpenseRow()" class="btn-add">+ Tambah Biaya</button></div>
+                    <div id="expenseContainer" class="space-y-3 mb-6"></div>
+                    <div class="p-4 bg-purple-50 rounded-xl border border-purple-100">
+                        <label class="text-[10px] font-bold text-purple-600 uppercase mb-2 block tracking-tight">TARGET PROFIT TOTAL USAHA (Rp)</label>
+                        <input type="number" id="targetNet" class="input-field border-purple-200 font-bold" value="0" oninput="calculateAll()">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Analysis Sidebar -->
+            <div class="space-y-4">
+                <div class="card p-6 border-t-4 border-green-500 sticky top-8 text-center">
+                    <h2 class="text-xs font-bold text-gray-400 uppercase mb-4">Hasil Analisis & Target</h2>
+                    <div class="space-y-4">
+                        <div class="bg-gray-50 p-4 rounded-xl">
+                            <p class="text-[10px] font-bold text-gray-400 uppercase">Margin Rata-rata / Pcs</p>
+                            <p id="resAvgMargin" class="text-2xl font-black text-gray-900">Rp 0</p>
+                        </div>
+                        <div class="flex justify-between text-sm px-1"><span class="text-gray-500 text-xs">Biaya Ops</span><span id="resOps" class="font-bold text-red-500 text-xs">Rp 0</span></div>
+                        
+                        <div class="pt-2 border-t flex flex-col gap-2">
+                            <div class="bg-blue-600 p-4 rounded-xl text-white">
+                                <p class="text-[10px] font-bold uppercase opacity-80">Target Volume Penjualan</p>
+                                <p id="resTargetPcs" class="text-4xl font-black my-1">0 Pcs</p>
+                            </div>
+                            
+                            <div class="bg-blue-50 border border-blue-100 p-3 rounded-xl text-left">
+                                <p class="text-[9px] font-black text-blue-500 uppercase">Estimasi Total Pendapatan Bersih</p>
+                                <p id="resTotalNetOmset" class="text-lg font-black text-blue-900 leading-none mt-1">Rp 0</p>
+                                <p class="text-[8px] text-blue-400 mt-1 italic leading-tight">*Uang yang cair dari platform setelah dipotong komisi.</p>
+                            </div>
+
+                            <div class="bg-green-50 border border-green-100 p-3 rounded-xl text-left">
+                                <p class="text-[9px] font-black text-green-600 uppercase">Total Profit Kotor (Gross)</p>
+                                <p id="resTotalNetProfit" class="text-lg font-black text-green-900 leading-none mt-1">Rp 0</p>
+                                <p class="text-[8px] text-green-400 mt-1 italic leading-tight">*Profit sebelum risiko retur/cod gagal.</p>
+                            </div>
+                        </div>
+
+                        <div class="p-4 bg-red-50 rounded-xl border border-red-100 text-left">
+                            <label class="text-[9px] font-black text-red-400 uppercase mb-2 block">Estimasi % Gagal COD / Retur</label>
+                            <select id="returnRate" class="w-full bg-white border border-red-200 rounded-lg p-2 text-xs font-bold text-red-700 outline-none mb-3" onchange="calculateAll()">
+                                <option value="0" selected>0%</option>
+                                <option value="1">1%</option>
+                                <option value="2">2%</option>
+                                <option value="3">3%</option>
+                                <option value="4">4%</option>
+                                <option value="5">5%</option>
+                                <option value="10">10%</option>
+                                <option value="15">15%</option>
+                                <option value="20">20%</option>
+                                <option value="30">30%</option>
+                            </select>
+                            <div class="flex justify-between items-end border-b border-red-100 pb-2 mb-2">
+                                <div>
+                                    <p class="text-[8px] text-gray-400 uppercase font-bold">Biaya Risiko Retur</p>
+                                    <p id="resLossReturn" class="text-lg font-black text-red-600">Rp 0</p>
+                                </div>
+                                <div class="text-right">
+                                    <p id="resLossPcs" class="text-[10px] font-bold text-red-400">0 Paket</p>
+                                </div>
+                            </div>
+
+                            <div class="mt-2 pt-1">
+                                <p class="text-[10px] font-black text-red-700 uppercase">Real Profit (Final)</p>
+                                <p id="resRealProfit" class="text-xl font-black text-red-800">Rp 0</p>
+                                <p class="text-[8px] text-red-400 mt-1 font-medium leading-tight">Keuntungan bersih nyata setelah dikurangi operasional dan risiko retur.</p>
+                            </div>
+                        </div>
+
+                        <div class="bg-gray-900 p-4 rounded-xl text-left">
+                            <h3 class="text-[10px] font-bold text-gray-500 uppercase mb-3">Produk Profit Tracker</h3>
+                            <div id="breakdown" class="space-y-2 max-h-48 overflow-y-auto custom-scrollbar"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Product Card Template -->
+    <template id="productTemplate">
+        <div class="card p-5 mb-4 border-l-4 border-blue-500" id="pc_{id}">
+            <div class="flex justify-between items-center mb-4">
+                <div class="flex items-center gap-3 w-full">
+                    <span class="bg-blue-100 text-blue-600 text-[10px] font-black px-2 py-1 rounded">#{id}</span>
+                    <input type="text" class="text-lg font-bold bg-transparent border-b border-gray-200 outline-none w-1/2 focus:border-blue-500" value="{name}" oninput="updateName({id}, this.value)">
+                </div>
+                <button onclick="removeProduct({id})" class="text-red-400 hover:text-red-600 text-xl font-bold">&times;</button>
+            </div>
+            
+            <div class="flex items-center gap-2 mb-4 bg-gray-50 p-2 rounded-lg w-fit">
+                <span class="text-[10px] font-bold text-gray-500 uppercase">Input: Profit</span>
+                <label class="switch">
+                    <input type="checkbox" id="mode_{id}" onchange="toggleMode({id})">
+                    <span class="slider"></span>
+                </label>
+                <span class="text-[10px] font-bold text-gray-500 uppercase">Input: Harga Jual</span>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div class="input-group"><label>HPP / Modal (Rp)</label><input type="number" id="hpp_{id}" class="input-field" value="{hpp}" oninput="updateVal({id}, 'hpp', this.value)"></div>
+                
+                <div class="input-group" id="input_profit_box_{id}">
+                    <label>Target Profit (Rp)</label>
+                    <input type="number" id="profit_{id}" class="input-field" value="{profit}" oninput="updateVal({id}, 'profit', this.value)">
+                </div>
+                <div class="input-group hidden" id="input_price_box_{id}">
+                    <label>Harga Jual (Rp)</label>
+                    <input type="number" id="price_manual_{id}" class="input-field font-bold text-blue-600" value="{price_manual}" oninput="updateVal({id}, 'price_manual', this.value)">
+                </div>
+
+                <div class="input-group"><label>Diskon / Voucher (Rp)</label><input type="number" id="vouch_{id}" class="input-field" value="{vouch}" oninput="updateVal({id}, 'vouch', this.value)"></div>
+                <div class="input-group"><label>Potongan Komisi</label><div id="res_kom_{id}" class="input-field bg-gray-50 font-bold text-orange-600">Rp 0</div></div>
+            </div>
+
+            <div class="mt-4 p-4 bg-gray-50 rounded-xl grid grid-cols-2 md:grid-cols-5 gap-2 items-center">
+                <div><p class="text-[9px] text-gray-400 uppercase font-black">Harga Jual</p><p class="font-black text-gray-900 text-xs md:text-sm" id="res_price_{id}">Rp 0</p></div>
+                <div><p class="text-[9px] text-gray-400 uppercase font-black">Profit/Unit</p><p class="font-black text-green-600 text-xs md:text-sm" id="res_margin_{id}">Rp 0</p></div>
+                <div><p class="text-[9px] text-gray-400 uppercase font-black">Dana Diterima</p><p class="font-bold text-gray-600 text-xs md:text-sm" id="res_net_omset_{id}">Rp 0</p></div>
+                <div class="bg-blue-50 p-1 rounded border border-blue-100"><p class="text-[9px] text-blue-500 uppercase font-black">ROI BEP</p><p class="font-black text-blue-700 text-xs md:text-sm" id="res_roi_bep_{id}">0.0</p></div>
+                <div id="res_status_{id}" class="text-[9px] font-black text-center py-2 rounded-lg border uppercase shadow-sm">ACTIVE</div>
+            </div>
+        </div>
+    </template>
+
+    <script>
+        const SHEET_ID = '14dFDUwByexoF4abbtnzMYKCPH6SMeFES-WNe5ZTa9KY';
+        const SHEET_CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=0`;
+        
+        const formatIDR = (v) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(v);
+        let products = [];
+        let nextId = 1;
+
+        async function validateAccess() {
+            const emailInput = document.getElementById('userEmail').value.trim().toLowerCase();
+            const btn = document.getElementById('loginBtn');
+            const btnText = document.getElementById('btnText');
+            const btnLoader = document.getElementById('btnLoader');
+            const errorEl = document.getElementById('loginError');
+            
+            if (!emailInput) { errorEl.innerText = "Email wajib diisi."; errorEl.classList.remove('hidden'); return; }
+            btn.disabled = true; btnText.innerText = "Verifikasi..."; btnLoader.classList.remove('hidden');
+
+            try {
+                const response = await fetch(SHEET_CSV_URL);
+                const csvData = await response.text();
+                const rows = csvData.split(/\r?\n/);
+                const registeredEmails = new Set();
+                rows.forEach(row => {
+                    row.split(',').forEach(col => {
+                        const c = col.replace(/["']/g, "").trim().toLowerCase();
+                        if (c.includes('@')) registeredEmails.add(c);
+                    });
+                });
+                if (registeredEmails.has(emailInput)) {
+                    localStorage.setItem('tiktok_kalkulator_auth', emailInput);
+                    showApp();
+                } else {
+                    document.getElementById('errorModalMessage').innerText = `Email ${emailInput} tidak terdaftar.`;
+                    document.getElementById('errorModal').style.display = 'flex';
+                }
+            } catch (error) { errorEl.innerText = "Gagal memuat database akses."; errorEl.classList.remove('hidden'); }
+            finally { btn.disabled = false; btnText.innerText = "Masuk Ke Kalkulator"; btnLoader.classList.add('hidden'); }
+        }
+
+        function showApp() {
+            document.getElementById('loginOverlay').style.display = 'none';
+            document.getElementById('mainContent').style.display = 'block';
+            calculateAll();
+        }
+
+        function logout() { localStorage.removeItem('tiktok_kalkulator_auth'); location.reload(); }
+        function closeErrorModal() { document.getElementById('errorModal').style.display = 'none'; }
+
+        // BATCH ACTIONS
+        function applyBatchMode(isChecked) {
+            const mode = isChecked ? 'price' : 'profit';
+            products.forEach(p => {
+                p.mode = mode;
+                const toggle = document.getElementById(`mode_${p.id}`);
+                if (toggle) toggle.checked = isChecked;
+                
+                const profBox = document.getElementById(`input_profit_box_${p.id}`);
+                const priceBox = document.getElementById(`input_price_box_${p.id}`);
+                if (profBox) profBox.classList.toggle('hidden', mode === 'price');
+                if (priceBox) priceBox.classList.toggle('hidden', mode === 'profit');
+            });
+            calculateAll();
+        }
+
+        function applyBatchValue(field, inputId) {
+            const val = parseFloat(document.getElementById(inputId).value) || 0;
+            products.forEach(p => {
+                p[field] = val;
+                const fieldInput = document.getElementById(`${field}_${p.id}`);
+                if (fieldInput) fieldInput.value = val;
+            });
+            calculateAll();
+        }
+
+        function clearBatchValue(field) {
+            products.forEach(p => {
+                p[field] = 0;
+                const fieldInput = document.getElementById(`${field}_${p.id}`);
+                if (fieldInput) fieldInput.value = 0;
+            });
+            calculateAll();
+        }
+
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, {type: 'array'});
+                    const firstSheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[firstSheetName];
+                    const jsonData = XLSX.utils.sheet_to_json(worksheet, {header: 1});
+                    
+                    processImportedData(jsonData);
+                } catch(err) {
+                    alert("Gagal membaca file Excel. Pastikan format kolom sesuai.");
+                }
+                event.target.value = ''; 
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function processImportedData(data) {
+            if (!data || data.length <= 1) {
+                alert("File kosong atau tidak memiliki baris data.");
+                return;
+            }
+            
+            const header = data[0].map(h => String(h).toLowerCase().trim());
+            
+            let nameColIdx = header.findIndex(h => h.includes('nama') || h.includes('produk') || h.includes('item'));
+            let hppColIdx = header.findIndex(h => h.includes('hpp') || h.includes('modal') || h.includes('beli'));
+            let priceColIdx = header.findIndex(h => h.includes('harga') || h.includes('jual') || h.includes('price'));
+
+            if (nameColIdx === -1) nameColIdx = 0; 
+            if (hppColIdx === -1) hppColIdx = 1;
+
+            const importedItems = [];
+            for (let i = 1; i < data.length; i++) {
+                const row = data[i];
+                if (!row || row.length === 0 || row.join('').trim() === '') continue; 
+                
+                const name = row[nameColIdx] ? String(row[nameColIdx]) : `Produk ${products.length + importedItems.length + 1}`;
+                const hpp = parseFloat(row[hppColIdx]) || 0;
+                const price = priceColIdx !== -1 ? (parseFloat(row[priceColIdx]) || 0) : 0;
+                
+                const mode = price > 0 ? 'price' : 'profit';
+                importedItems.push({ name, hpp, price, mode });
+            }
+
+            if (importedItems.length > 0) {
+                batchAddProducts(importedItems);
+            }
+        }
+
+        function batchAddProducts(items) {
+            const globalPacking = parseFloat(document.getElementById('g_pack').value) || 0;
+            const container = document.getElementById('productsContainer');
+            
+            items.forEach(item => {
+                const p = { 
+                    id: nextId++, 
+                    name: item.name, 
+                    hpp: item.hpp, 
+                    profit: 0, 
+                    vouch: 0, 
+                    price_manual: item.price || 0, 
+                    pack: globalPacking, 
+                    mode: item.mode 
+                };
+                products.push(p);
+                
+                let template = document.getElementById('productTemplate').innerHTML
+                    .replace(/\{id\}/g, p.id)
+                    .replace(/\{name\}/g, p.name)
+                    .replace(/\{hpp\}/g, p.hpp)
+                    .replace(/\{profit\}/g, p.profit)
+                    .replace(/\{vouch\}/g, p.vouch)
+                    .replace(/\{price_manual\}/g, p.price_manual);
+                
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = template;
+                const card = tempDiv.firstElementChild;
+                
+                if (p.mode === 'price') {
+                    card.querySelector(`#mode_${p.id}`).checked = true;
+                    card.querySelector(`#input_profit_box_${p.id}`).classList.add('hidden');
+                    card.querySelector(`#input_price_box_${p.id}`).classList.remove('hidden');
+                }
+                    
+                container.appendChild(card);
+            });
+            calculateAll();
+        }
+
+        function addProduct() {
+            const globalPacking = parseFloat(document.getElementById('g_pack').value) || 0;
+            const p = { id: nextId++, name: `Produk Baru ${nextId-1}`, hpp: 0, profit: 0, vouch: 0, price_manual: 0, pack: globalPacking, mode: 'profit' };
+            products.push(p);
+            const container = document.getElementById('productsContainer');
+            const temp = document.getElementById('productTemplate').innerHTML
+                .replace(/\{id\}/g, p.id)
+                .replace(/\{name\}/g, p.name)
+                .replace(/\{hpp\}/g, p.hpp)
+                .replace(/\{profit\}/g, p.profit)
+                .replace(/\{vouch\}/g, p.vouch)
+                .replace(/\{price_manual\}/g, p.price_manual);
+                
+            container.insertAdjacentHTML('beforeend', temp);
+            calculateAll();
+        }
+
+        function toggleMode(id) {
+            const p = products.find(x => x.id === id);
+            const checkbox = document.getElementById(`mode_${id}`);
+            p.mode = checkbox.checked ? 'price' : 'profit';
+            document.getElementById(`input_profit_box_${id}`).classList.toggle('hidden', p.mode === 'price');
+            document.getElementById(`input_price_box_${id}`).classList.toggle('hidden', p.mode === 'profit');
+            calculateAll();
+        }
+
+        function removeProduct(id) {
+            products = products.filter(x => x.id !== id);
+            const el = document.getElementById(`pc_${id}`);
+            if (el) el.remove();
+            calculateAll();
+        }
+
+        function updateName(id, v) { const p = products.find(x => x.id === id); if (p) p.name = v; renderBreakdown(); }
+        function updateVal(id, f, v) { const p = products.find(x => x.id === id); if (p) { p[f] = parseFloat(v) || 0; calculateAll(); } }
+        
+        function syncPackingToProducts() {
+            const globalPacking = parseFloat(document.getElementById('g_pack').value) || 0;
+            products.forEach(p => { p.pack = globalPacking; });
+        }
+
+        function addExpenseRow() {
+            const div = document.createElement('div');
+            div.className = "flex gap-3 items-end expense-row";
+            div.innerHTML = `<input type="text" class="input-field flex-1 expense-name" placeholder="Sewa Kantor, Gaji, dll"><input type="number" class="input-field w-1/3 expense-value" value="0" oninput="calculateAll()"><button onclick="this.parentElement.remove(); calculateAll()" class="btn-remove mb-2">&times;</button>`;
+            document.getElementById('expenseContainer').appendChild(div);
+        }
+
+        function calculateAll() {
+            document.getElementById('productCount').innerText = products.length;
+
+            const p_plat = parseFloat(document.getElementById('g_plat').value) || 0;
+            const p_dyn = parseFloat(document.getElementById('g_dyn').value) || 0;
+            const p_serv = parseFloat(document.getElementById('g_serv').value) || 0;
+            const p_aff = parseFloat(document.getElementById('g_aff').value) || 0;
+            const p_other = parseFloat(document.getElementById('g_other').value) || 0;
+            const totalKomPersen = p_plat + p_dyn + p_serv + p_aff + p_other;
+            document.getElementById('globalTotalPersen').innerText = totalKomPersen.toFixed(1);
+
+            const globalAdSpend = parseFloat(document.getElementById('g_ad_spend').value) || 0;
+            const globalRoi = parseFloat(document.getElementById('g_roi').value) || 0;
+            const denom = 1 - (totalKomPersen / 100);
+
+            let totalUnitMargin = 0;
+            let totalUnitNetOmset = 0;
+
+            products.forEach(p => {
+                let netOmset, displayPrice, finalMargin, platformFee;
+                if (p.mode === 'profit') {
+                    netOmset = (p.hpp + p.profit + p.pack) / (denom > 0 ? denom : 0.001);
+                    displayPrice = netOmset + p.vouch;
+                } else {
+                    displayPrice = p.price_manual;
+                    netOmset = displayPrice - p.vouch;
+                }
+                platformFee = netOmset * (totalKomPersen / 100);
+                const revenueReceived = netOmset - platformFee;
+                
+                let currentAdSpend = globalRoi > 0 ? (displayPrice / globalRoi) : globalAdSpend;
+                finalMargin = revenueReceived - p.hpp - p.pack - currentAdSpend;
+                
+                totalUnitMargin += finalMargin;
+                totalUnitNetOmset += revenueReceived;
+
+                const grossMarginPerUnit = revenueReceived - p.hpp - p.pack;
+                const roiBep = grossMarginPerUnit > 0 ? (displayPrice / grossMarginPerUnit) : 0;
+
+                const priceEl = document.getElementById(`res_price_${p.id}`);
+                const komEl = document.getElementById(`res_kom_${p.id}`);
+                const netEl = document.getElementById(`res_net_omset_${p.id}`);
+                const roiEl = document.getElementById('res_roi_bep_' + p.id);
+                const marginEl = document.getElementById('res_margin_' + p.id);
+
+                if(priceEl) priceEl.innerText = formatIDR(Math.ceil(displayPrice));
+                if(komEl) komEl.innerText = formatIDR(Math.round(platformFee));
+                if(netEl) netEl.innerText = formatIDR(Math.round(revenueReceived));
+                if(roiEl) roiEl.innerText = roiBep.toFixed(1);
+                
+                if(marginEl) {
+                    marginEl.innerText = formatIDR(Math.round(finalMargin));
+                    marginEl.className = finalMargin >= 0 ? "font-black text-green-600 text-xs md:text-sm" : "font-black text-red-600 text-xs md:text-sm";
+                }
+                
+                p.computedMargin = finalMargin;
+                p.computedRoiBep = roiBep;
+                p.computedPrice = displayPrice;
+                p.computedNetOmset = revenueReceived;
+                p.computedFee = platformFee;
+                p.computedAdSpend = currentAdSpend;
+            });
+
+            const expRows = document.querySelectorAll('.expense-row');
+            let totalOps = 0;
+            expRows.forEach(r => totalOps += parseFloat(r.querySelector('.expense-value').value) || 0);
+            
+            const targetNet = parseFloat(document.getElementById('targetNet').value) || 0;
+            const avgMargin = products.length > 0 ? totalUnitMargin / products.length : 0;
+            const avgNetOmset = products.length > 0 ? totalUnitNetOmset / products.length : 0;
+            const targetPcs = avgMargin > 0 ? Math.ceil((totalOps + targetNet) / avgMargin) : 0;
+            
+            const totalNetProfitGlobal = targetPcs * avgMargin;
+            const totalNetOmsetGlobal = targetPcs * avgNetOmset;
+
+            document.getElementById('resOps').innerText = formatIDR(totalOps);
+            document.getElementById('resAvgMargin').innerText = formatIDR(Math.round(avgMargin));
+            document.getElementById('resTargetPcs').innerText = (avgMargin > 0 ? targetPcs : "0") + " Pcs";
+            document.getElementById('resTotalNetOmset').innerText = formatIDR(Math.round(totalNetOmsetGlobal));
+            document.getElementById('resTotalNetProfit').innerText = formatIDR(Math.round(totalNetProfitGlobal));
+
+            const returnRate = parseFloat(document.getElementById('returnRate').value) || 0;
+            const totalReturnPcs = Math.ceil(targetPcs * (returnRate / 100));
+            const totalLossValue = totalReturnPcs * 5000; 
+
+            document.getElementById('resLossPcs').innerText = totalReturnPcs + " Paket";
+            document.getElementById('resLossReturn').innerText = formatIDR(totalLossValue);
+            
+            const realProfit = totalNetProfitGlobal - totalLossValue;
+            const realProfitEl = document.getElementById('resRealProfit');
+            realProfitEl.innerText = formatIDR(Math.round(realProfit));
+            realProfitEl.className = realProfit >= targetNet && realProfit > 0 ? "text-xl font-black text-green-700" : "text-xl font-black text-red-800";
+
+            renderBreakdown();
+        }
+
+        function renderBreakdown() {
+            const container = document.getElementById('breakdown');
+            if(!container) return;
+            container.innerHTML = products.map(p => `
+                <div class="flex justify-between items-center text-[11px] py-1 border-b border-slate-800">
+                    <span class="text-slate-400 truncate w-24">${p.name}</span>
+                    <span class="text-[9px] text-blue-400 font-bold">BEP: ${p.computedRoiBep.toFixed(1)}</span>
+                    <span class="font-bold ${p.computedMargin >= 0 ? 'text-green-400' : 'text-red-400'}">${formatIDR(Math.round(p.computedMargin || 0))}</span>
+                </div>
+            `).join('');
+        }
+
+        function exportToExcel() {
+            const wb = XLSX.utils.book_new();
+
+            const dashboardRows = [
+                ["LAPORAN ANALISIS PROFIT - TIKTOK & SHOPEE"],
+                ["Tanggal Ekspor", new Date().toLocaleString('id-ID')],
+                [],
+                ["PARAMETER GLOBAL"],
+                ["Komisi Admin (%)", document.getElementById('g_plat').value],
+                ["Komisi Dinamis (%)", document.getElementById('g_dyn').value],
+                ["Biaya Layanan (%)", document.getElementById('g_serv').value],
+                ["Komisi Affiliate (%)", document.getElementById('g_aff').value],
+                ["Lainnya (%)", document.getElementById('g_other').value],
+                ["Total Potongan Platform (%)", document.getElementById('globalTotalPersen').innerText + "%"],
+                ["Biaya Per Pesanan (Rp)", document.getElementById('g_pack').value],
+                ["Biaya Iklan/Pcs (Rp)", document.getElementById('g_ad_spend').value],
+                [],
+                ["HASIL ANALISIS TARGET"],
+                ["Target Profit Bersih Bulanan", document.getElementById('targetNet').value],
+                ["Total Biaya Operasional", document.getElementById('resOps').innerText],
+                ["Target Volume Penjualan", document.getElementById('resTargetPcs').innerText],
+                ["Total Pendapatan Bersih (Net Omset)", document.getElementById('resTotalNetOmset').innerText],
+                ["Total Profit Kotor (Gross)", document.getElementById('resTotalNetProfit').innerText],
+                [],
+                ["ANALISIS RISIKO RETURN"],
+                ["Persentase Gagal COD (%)", document.getElementById('returnRate').value + "%"],
+                ["Estimasi Paket Retur", document.getElementById('resLossPcs').innerText],
+                ["Total Biaya Kerugian Retur", document.getElementById('resLossReturn').innerText],
+                [],
+                ["KESIMPULAN"],
+                ["PROFIT NYATA (REAL PROFIT)", document.getElementById('resRealProfit').innerText]
+            ];
+            const wsDashboard = XLSX.utils.aoa_to_sheet(dashboardRows);
+
+            const productHeader = [
+                "ID", "Nama Produk", "Mode", "HPP (Rp)", "Profit Target (Rp)", "Harga Jual Manual (Rp)", 
+                "Voucher (Rp)", "Biaya Per Pesanan (Rp)", "Final Harga Jual (Rp)", "Potongan Platform (Rp)", "Net Dana Masuk (Rp)", 
+                "Biaya Iklan (Rp)", "Margin Bersih/Unit (Rp)", "ROI BEP"
+            ];
+            const productData = products.map(p => [
+                p.id, p.name, p.mode,
+                p.hpp, p.profit, p.price_manual, p.vouch, p.pack,
+                Math.ceil(p.computedPrice), Math.round(p.computedFee), Math.round(p.computedNetOmset),
+                Math.round(p.computedAdSpend), Math.round(p.computedMargin), p.computedRoiBep.toFixed(2)
+            ]);
+            const wsProducts = XLSX.utils.aoa_to_sheet([["RINCIAN DATA PER PRODUK"], [], productHeader, ...productData]);
+
+            XLSX.utils.book_append_sheet(wb, wsDashboard, "Ringkasan");
+            XLSX.utils.book_append_sheet(wb, wsProducts, "Rincian Produk");
+
+            XLSX.writeFile(wb, `Profit_Analysis_${new Date().toISOString().split('T')[0]}.xlsx`);
+        }
+
+        window.onload = function() { 
+            if (localStorage.getItem('tiktok_kalkulator_auth')) {
+                showApp();
+            } 
+        };
+    </script>
+</body>
+</html>
